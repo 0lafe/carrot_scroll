@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            background: #111;
+        }
+
+        .background {
+            position: fixed;
+            inset: 0;
+            overflow: hidden;
+            background-image: url('background.jpg');
+        }
+
+        .scroller {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: auto;
+            will-change: transform;
+            pointer-events: none;
+            user-select: none;
+        }
+
+    </style>
+  </head>
+  <body>
+    <div class="background" id="background"></div>
+
+    <script>
+        const background = document.getElementById("background");
+
+        const imageCount = 55;
+
+        const minDuration = 10;
+        const maxDuration = 30;
+
+        const minOnScreen = 10;
+        const maxOnScreen = 20;
+
+        const minHeight = 80;
+        const maxHeight = 180;
+
+        const random = (min, max) => min + Math.random() * (max - min);
+
+        const images = [];
+        for (let i = 1; i <= imageCount; i++) {
+            const img = document.createElement("img");
+            img.src = `images/picture_${i}.png`;
+            img.className = "scroller";
+            img.style.visibility = "hidden";
+            background.appendChild(img);
+            images.push({ img, active: false });
+        }
+
+        let target = Math.round(random(minOnScreen, maxOnScreen));
+        const activeCount = () => images.filter((entry) => entry.active).length;
+
+        function launch(entry, startProgress = 0) {
+            const { img } = entry;
+            const height = random(minHeight, maxHeight);
+            img.style.height = `${height}px`;
+
+            const ratio = img.naturalWidth && img.naturalHeight
+                ? img.naturalWidth / img.naturalHeight
+                : 1;
+            const width = height * ratio;
+
+            const top = random(0, Math.max(0, window.innerHeight - height));
+            const duration = random(minDuration, maxDuration) * 1000;
+
+            entry.active = true;
+            img.style.visibility = "visible";
+
+            const animation = img.animate(
+                [
+                    { transform: `translate(${window.innerWidth}px, ${top}px)` },
+                    { transform: `translate(${-width}px, ${top}px)` },
+                ],
+                { duration, easing: "linear" }
+            );
+            animation.currentTime = startProgress * duration;
+
+            animation.onfinish = () => {
+                img.style.visibility = "hidden";
+                entry.active = false;
+            };
+        }
+
+        function launchRandomIdle(startProgress) {
+            const idle = images.filter((entry) => !entry.active);
+            if (idle.length === 0) return;
+            launch(idle[Math.floor(Math.random() * idle.length)], startProgress);
+        }
+
+        function tick() {
+            if (activeCount() < target) {
+                launchRandomIdle();
+            }
+
+            if (Math.random() < 0.1) {
+                target = Math.round(random(minOnScreen, maxOnScreen));
+            }
+            setTimeout(tick, random(500, 2000));
+        }
+
+        window.addEventListener("load", () => {
+            for (let i = 0; i < target; i++) {
+                launchRandomIdle(Math.random());
+            }
+            tick();
+        });
+    </script>
+  </body>
+</html>
